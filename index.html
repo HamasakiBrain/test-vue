@@ -27,8 +27,8 @@
                <div v-if="emptyJar.length">
                    Пустые банки:
                </div>
-               <div v-for="jar in emptyJar" v-if="emptyJar.length">
-                   <jar :id="jar.id"  :volume="jar.volume"></jar>
+               <div v-for="(jar, index) in emptyJar" :key="index">
+                   <jar :id="jar.id"  :volume="jar.volume" :volume_left="jar.volume_left"></jar>
                </div>
            </div>
            <div class="col-lg-4">
@@ -47,7 +47,7 @@
            </div>
            <div class="col-lg-4">
                <label>Ваши банки</label>
-               <jar :id="item.id" :volume="item.volume" :jam="item.jam" :volume_left="item.volume_left" v-for="item in jars"></jar>
+               <jar :id="item.id" :volume="item.volume" :jam="item.jam" :volume_left="item.volume_left" v-for="(item, index) in jars" :key="index"></jar>
            </div>
        </div>
 
@@ -70,7 +70,7 @@
             return {
                 emptyJar: [],
                 jarAdd: {},
-                jams: ["Вишневое", "абрикосовое", "клубничное"],
+                jams: ["Вишневое", "Абрикосовое", "Клубничное"],
                 cooked: {},
                 jars: []
             }
@@ -78,31 +78,32 @@
         methods: {
             addEmptyJars(){
                 if(this.jarAdd.id && this.jarAdd.volume){
+                    this.jarAdd.volume_left = this.jarAdd.volume
                     this.emptyJar.push(this.jarAdd);
                     this.jarAdd = {};
                 }
             },
             addJars(){
-                let checkJars = this.emptyJar.find(item => item)
-                console.log(checkJars)
-                if (checkJars){
+                if (this.emptyJar.length){
                     let jar  = this.emptyJar.find(item => item.volume >= this.cooked.volume)
                     jar.jam = this.cooked.jam;
-                    this.emptyJar = jar;
+                    jar.volume_left = (parseInt(jar.volume) - parseInt(this.cooked.volume))
                     let JarFill = {
                         id: jar.id,
                         jam: this.cooked.jam,
-                        volume: this.cooked.volume,
-                        volume_left: (parseInt(jar.volume) - parseInt(this.cooked.volume))
+                        volume: jar.volume,
+                        volume_left: jar.volume_left
                     }
-                    jar.volume = JarFill.volume_left;
-                    if (jar.volume <= 0 ) {
-
+                    const index = this.emptyJar.findIndex(function (item) {
+                        return item.id === jar.id;
+                    })
+                    if (jar.volume_left <= 0 ) {
                         this.emptyJar.splice(index, 1);
                     }
                     this.jars.push(JarFill);
+                    this.cooked = {}
                 } else {
-                    let jar = this.jars.find(item => item.volume_left >= this.cooked.volume && item.jam == this.cooked.jam)
+                    let jar = this.jars.find(item => item.volume_left >= this.cooked.volume && item.jam === this.cooked.jam)
                     console.log(jar);
                     let index = this.selectIndex(this.jars, jar.id);
                     let volumeLeft = this.jars[index].volume_left
@@ -110,14 +111,22 @@
                    this.jars[index].volume_left =  parseInt(volumeLeft) - parseInt(this.cooked.volume);
 
                 }
-
             },
             selectIndex(array, id){
                 return array.map(x => {
                     return x.id;
                 }).indexOf(id)
             }
-        }
+        },
+        computed: {
+            freeVolume(){
+                let sum = 0
+                this.emptyJar.forEach((jar)=>{
+                    sum += parseInt(jar.volume_left)
+                })
+                return sum
+            }
+        },
     });
 </script>
 </body>
