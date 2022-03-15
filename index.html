@@ -42,14 +42,8 @@
                    какой объем сварили?
                    <input type="number" class="form-control" v-model="cooked.volume">
                </div>
-              <div class="form-group">
-                  <label>Выберите куда залить</label>
-                  <select v-model="cooked.jar" class="form-control">
-                      <option :value="item.id" v-for="item in emptyJar" v-if="item.volume >= cooked.volume" >{{ item.id }} объемом {{ item.volume }}</option>
-                      <option :value="item.id" v-for="item in jars" v-if="item.volume_left >= cooked.volume && item.jam == cooked.jam" >{{ item.id }} объемом {{ item.volume_left }}</option>
-                  </select>
-              </div>
-               <button class="btn btn-success" @click="addJars(cooked.jar)">Залить варенье</button>
+
+               <button class="btn btn-success" @click="addJars()">Залить варенье</button>
            </div>
            <div class="col-lg-4">
                <label>Ваши банки</label>
@@ -65,10 +59,10 @@
         props: ["id", "volume", "jam", "volume_left"],
         template: `
             <div>
-              Банка {{ id }} с объемом {{ volume }} грамм {{ jam ? jam + " варенье " : "" }} свободно еще {{ volume_left }} .
+              Банка {{ id }} с объемом {{ volume }} грамм {{ jam ? jam + " варенье " : "" }} {{ volume_left > 0 ? "свободно еще " + volume_left : ""}}
             </div>
         `,
-    })
+    });
 
     new Vue({
         el: "#app",
@@ -88,18 +82,40 @@
                     this.jarAdd = {};
                 }
             },
-            addJars(id){
-                let item = this.emptyJar.findIndex(
-                            x => x.id === id
-                )
-              let Jar = {
-                  id: this.cooked.jar,
-                  jam: this.cooked.jam,
-                  volume: this.cooked.volume,
-                  volume_left: (parseInt(this.emptyJar[item].volume) - parseInt(this.cooked.volume))
-              }
-              this.jars.push(Jar);
-              this.emptyJar.splice(item, 1);
+            addJars(){
+                let checkJars = this.emptyJar.find(item => item)
+                console.log(checkJars)
+                if (checkJars){
+                    let jar  = this.emptyJar.find(item => item.volume >= this.cooked.volume)
+                    jar.jam = this.cooked.jam;
+                    this.emptyJar = jar;
+                    let JarFill = {
+                        id: jar.id,
+                        jam: this.cooked.jam,
+                        volume: this.cooked.volume,
+                        volume_left: (parseInt(jar.volume) - parseInt(this.cooked.volume))
+                    }
+                    jar.volume = JarFill.volume_left;
+                    if (jar.volume <= 0 ) {
+
+                        this.emptyJar.splice(index, 1);
+                    }
+                    this.jars.push(JarFill);
+                } else {
+                    let jar = this.jars.find(item => item.volume_left >= this.cooked.volume && item.jam == this.cooked.jam)
+                    console.log(jar);
+                    let index = this.selectIndex(this.jars, jar.id);
+                    let volumeLeft = this.jars[index].volume_left
+                   this.jars[index].volume  =  parseInt(jar.volume) + parseInt(this.cooked.volume);
+                   this.jars[index].volume_left =  parseInt(volumeLeft) - parseInt(this.cooked.volume);
+
+                }
+
+            },
+            selectIndex(array, id){
+                return array.map(x => {
+                    return x.id;
+                }).indexOf(id)
             }
         }
     });
